@@ -37,8 +37,17 @@ class AudioManifestDataset:
 
     def __getitem__(self, index: int) -> dict[str, object]:
         row = self.rows[index]
-        values = load_audio(row, self.sample_rate)
-        return {"input_values": values, "labels": self.processor.tokenizer(str(row["transcript"])).input_ids}
+        audio = load_audio(row, self.sample_rate)
+        input_values = self.processor(
+            audio,
+            sampling_rate=self.sample_rate,
+            return_tensors="np",
+        ).input_values[0]
+        labels = self.processor.tokenizer(
+            str(row["transcript"]),
+            add_special_tokens=False,
+        ).input_ids
+        return {"input_values": input_values, "labels": labels}
 
 
 def main() -> None:
