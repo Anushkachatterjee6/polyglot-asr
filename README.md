@@ -20,5 +20,14 @@ Prefer working locally? You need Node.js and npm — [install with nvm](https://
 git clone <this-repository-url>
 cd <repository-name>
 npm i
-npm run dev
+start-dev.bat
 ```
+
+## Polyglot ASR backend
+
+The transcription backend uses Gemini 3.5 Transcribe only. Follow the backend
+[setup guide](./backend/docs/SETUP.md), add `GEMINI_API_KEY` only to the ignored
+`backend/.env`, and keep `VITE_API_BASE_URL=http://127.0.0.1:8002` in the root
+`.env.local`. `start-dev.bat` runs the backend on 8002 and frontend on 5175,
+and stops with a clear error if either port is occupied. The browser never
+receives the Gemini API key.

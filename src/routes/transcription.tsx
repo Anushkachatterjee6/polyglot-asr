@@ -8,13 +8,13 @@ export const Route = createFileRoute("/transcription")({
       {
         name: "description",
         content:
-          "Upload or record Hindi–English audio, review the waveform and get code-switched transcripts from the XLS-R backend.",
+          "Upload or record Hindi–English audio, review the waveform and get transcripts from the Gemini 3.5 Transcribe backend.",
       },
       { property: "og:title", content: "Transcription Studio — Polyglot ASR" },
       {
         property: "og:description",
         content:
-          "Upload or record Hindi–English audio, review the waveform and get code-switched transcripts from the XLS-R backend.",
+          "Upload or record Hindi–English audio, review the waveform and get transcripts from the Gemini 3.5 Transcribe backend.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

@@ -100,7 +100,12 @@ export function ContextAdaptationPage() {
     () => (adapted ? diffWords(transcript, adapted) : null),
     [transcript, adapted],
   );
-  const changed = diff ? diff.adapted.filter((p) => p.type === "added").length : 0;
+  const changed = diff
+    ? Math.max(
+        diff.original.filter((part) => part.type === "removed").length,
+        diff.adapted.filter((part) => part.type === "added").length,
+      )
+    : 0;
 
   return (
     <>
@@ -272,7 +277,7 @@ export function ContextAdaptationPage() {
           <Surface className="px-5 py-5">
             <SectionHeading
               title="Adapt a transcript"
-              detail="The backend rewrites the transcript using the selected domain vocabulary"
+              detail="The backend applies selected-domain, context-aware corrections only"
               action={
                 <Button
                   variant="ghost"

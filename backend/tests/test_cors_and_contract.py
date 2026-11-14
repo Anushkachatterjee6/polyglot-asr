@@ -3,13 +3,25 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-ORIGINS = ("http://localhost:8082", "http://127.0.0.1:8082")
+FRONTEND_ORIGIN = "http://127.0.0.1:5175"
 
 
-def test_frontend_origins_are_accepted_for_preflight(tmp_path, monkeypatch):
+def test_fixed_frontend_origin_is_accepted_and_stale_origins_are_rejected(tmp_path, monkeypatch):
     monkeypatch.setenv("POLYGLOT_DATA_DIR", str(tmp_path))
     with TestClient(app) as client:
-        for origin in ORIGINS:
+        response = client.options(
+            "/api/analyze-language",
+            headers={
+                "Origin": FRONTEND_ORIGIN,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == FRONTEND_ORIGIN
+        assert response.headers["access-control-allow-credentials"] == "true"
+
+        for origin in ("http://localhost:5173", "http://127.0.0.1:5176"):
             response = client.options(
                 "/api/analyze-language",
                 headers={
@@ -18,8 +30,7 @@ def test_frontend_origins_are_accepted_for_preflight(tmp_path, monkeypatch):
                     "Access-Control-Request-Headers": "content-type",
                 },
             )
-            assert response.status_code == 200
-            assert response.headers["access-control-allow-origin"] == origin
+            assert response.status_code == 400
 
 
 def test_language_analysis_contract(tmp_path, monkeypatch):
@@ -27,7 +38,7 @@ def test_language_analysis_contract(tmp_path, monkeypatch):
     with TestClient(app) as client:
         response = client.post(
             "/api/analyze-language",
-            headers={"Origin": "http://localhost:8082"},
+            headers={"Origin": FRONTEND_ORIGIN},
             json={"transcript": "Aaj I am going to college because mera exam hai."},
         )
     assert response.status_code == 200

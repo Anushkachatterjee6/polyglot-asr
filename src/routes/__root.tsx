@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Code-switched Hindi–English speech recognition research console for the XLS-R 300M CTC model.",
+          "Code-switched Hindi–English speech recognition research console for Gemini 3.5 Transcribe.",
       },
       { name: "theme-color", content: "#1a1f27" },
       { property: "og:title", content: "Polyglot ASR — Research Console" },

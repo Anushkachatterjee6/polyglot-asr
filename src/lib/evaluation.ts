@@ -57,12 +57,12 @@ export const METRICS: MetricDef[] = [
 export const WER_METRIC: MetricDef = METRICS[0]!;
 
 export const PROTOCOL_EXPERIMENTS = [
-  { id: "E0", label: "Original XLS-R" },
-  { id: "E1", label: "Fine-tuned XLS-R" },
-  { id: "E2", label: "Beam Search" },
-  { id: "E3", label: "KenLM" },
-  { id: "E4", label: "Contextual Adaptation" },
-  { id: "E5", label: "Robustness Optimization" },
+  { id: "E0", label: "Gemini baseline transcription" },
+  { id: "E1", label: "Gemini with domain vocabulary" },
+  { id: "E2", label: "Gemini + post-transcription adaptation" },
+  { id: "E3", label: "Gemini Hindi-English evaluation" },
+  { id: "E4", label: "Gemini Tamil-English evaluation" },
+  { id: "E5", label: "Gemini robustness evaluation" },
 ];
 
 function escape(value: string) {

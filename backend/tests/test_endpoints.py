@@ -6,7 +6,8 @@ import wave
 
 from fastapi.testclient import TestClient
 
-from app.core.model_loader import XlsrModel
+from app import main
+from app.core.gemini_transcribe import GeminiServiceError, GeminiTranscription
 from app.main import app
 
 
@@ -22,7 +23,8 @@ def wav_bytes() -> bytes:
 
 def test_transcription_contract_and_history_persistence(tmp_path, monkeypatch):
     monkeypatch.setenv("POLYGLOT_DATA_DIR", str(tmp_path))
-    monkeypatch.setattr(XlsrModel, "transcribe", lambda _self, _audio: "mera Python")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(main, "transcribe_with_gemini", lambda **_: GeminiTranscription("mera Python"))
     with TestClient(app) as client:
         transcription = client.post(
             "/api/transcribe",
@@ -47,26 +49,49 @@ def test_endpoint_contracts_and_request_errors(tmp_path, monkeypatch):
         assert health.json() == {"status": "ok", "ready": False}
         info = client.get("/api/model-info")
         assert set(info.json()) == {"project", "dataset", "model", "status", "supportedLanguages"}
-        context = client.post("/api/context", json={"transcript": "use python", "domain": "programming", "vocabulary": []})
-        assert context.json() == {"original": "use python", "adapted": "use Python"}
+        context = client.post(
+            "/api/context",
+            json={
+                "transcript": "machine learnin improves inferense",
+                "domain": "Machine Learning",
+                "vocabulary": ["machine learning", "inference"],
+            },
+        )
+        assert context.json() == {
+            "original": "machine learnin improves inferense",
+            "adapted": "machine learning improves inference",
+        }
         exported = client.post("/api/export", json={"transcript": "hello", "format": "json"})
         assert exported.json()["filename"] == "polyglot-transcript.json"
         assert json.loads(exported.json()["content"]) == {"transcript": "hello"}
         evaluation = client.get("/api/evaluation")
-        assert len(evaluation.json()["metrics"]) == 30
-        assert all(metric["value"] is None for metric in evaluation.json()["metrics"])
+        assert evaluation.json()["status"] == "empty"
+        assert evaluation.json()["totals"]["recordings"] == 0
         assert client.post("/api/export", json={"transcript": "hello", "format": "csv"}).status_code == 422
         assert client.post("/api/context", json={"transcript": "", "domain": "", "vocabulary": []}).status_code == 422
         assert client.post("/api/transcribe", files={"audio": ("not-audio.txt", b"content", "text/plain")}).status_code == 422
         assert client.post("/api/transcribe", files={"audio": ("audio.wav", wav_bytes(), "audio/wav")}, data={"vocabulary": "bad json"}).status_code == 422
 
 
-def test_invalid_evaluation_report_is_not_served_as_results(tmp_path, monkeypatch):
+def test_live_evaluation_ignores_legacy_benchmark_reports(tmp_path, monkeypatch):
     report = tmp_path / "evaluation.json"
     report.write_text("not-json", encoding="utf-8")
     monkeypatch.setenv("POLYGLOT_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("POLYGLOT_EVALUATION_PATH", str(report))
     with TestClient(app) as client:
         response = client.get("/api/evaluation")
-    assert response.status_code == 503
-    assert "invalid" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["status"] == "empty"
+
+
+def test_gemini_failure_is_returned_safely(tmp_path, monkeypatch):
+    monkeypatch.setenv("POLYGLOT_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    def unavailable(**_):
+        raise GeminiServiceError("Gemini transcription is temporarily rate limited. Please try again shortly.", 429)
+
+    monkeypatch.setattr(main, "transcribe_with_gemini", unavailable)
+    with TestClient(app) as client:
+        response = client.post("/api/transcribe", files={"audio": ("recording.wav", wav_bytes(), "audio/wav")})
+    assert response.status_code == 429
+    assert "rate limited" in response.text

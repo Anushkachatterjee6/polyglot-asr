@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from io import BytesIO
 import json
+from io import BytesIO
 import wave
 
 from fastapi.testclient import TestClient
@@ -30,6 +30,23 @@ def test_record_contract_and_validation(tmp_path, monkeypatch):
     assert "Unsupported audio type" in rejected.json()["detail"]
 
 
+def test_cors_preflight_allows_the_fixed_frontend_origin():
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/history/example/reference",
+            headers={
+                "Origin": "http://127.0.0.1:5175",
+                "Access-Control-Request-Method": "PATCH",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5175"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "PATCH" in response.headers["access-control-allow-methods"]
+    assert "content-type" in response.headers["access-control-allow-headers"].casefold()
+
+
 def test_analyze_language_contract_and_validation(tmp_path, monkeypatch):
     monkeypatch.setenv("POLYGLOT_DATA_DIR", str(tmp_path))
     with TestClient(app) as client:
@@ -56,7 +73,7 @@ def test_context_export_and_evaluation_contract_errors(tmp_path, monkeypatch):
     assert text_export.json() == {"content": "hello", "filename": "polyglot-transcript.txt"}
     assert json.loads(json_export.json()["content"]) == {"transcript": "hello"}
     assert bad_export.status_code == 422
-    assert all(metric["value"] is None for metric in evaluation.json()["metrics"])
+    assert evaluation.json()["status"] == "empty"
 
 
 def test_transcription_validation_and_honest_unavailable_response(tmp_path, monkeypatch):
@@ -64,12 +81,15 @@ def test_transcription_validation_and_honest_unavailable_response(tmp_path, monk
     with TestClient(app) as client:
         unavailable = client.post("/api/transcribe", files={"audio": ("sample.wav", valid_wav(), "audio/wav")})
         missing = client.post("/api/transcribe")
+        empty = client.post("/api/transcribe", files={"audio": ("empty.wav", b"", "audio/wav")})
         invalid_vocabulary = client.post(
             "/api/transcribe",
             files={"audio": ("sample.wav", valid_wav(), "audio/wav")},
             data={"vocabulary": "{}"},
         )
     assert unavailable.status_code == 503
-    assert "not ready" in unavailable.json()["detail"]
+    assert "GEMINI_API_KEY" in unavailable.text
     assert missing.status_code == 422
+    assert empty.status_code == 422
+    assert "empty" in empty.json()["detail"]
     assert invalid_vocabulary.status_code == 422

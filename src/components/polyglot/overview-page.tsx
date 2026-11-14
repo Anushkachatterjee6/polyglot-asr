@@ -13,15 +13,13 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-  getEvaluation,
   getHistory,
   getModelInfo,
   isDemoMode,
-  type EvaluationMetric,
   type ModelInfo,
   type TranscriptResult,
 } from "@/lib/polyglot-api";
-import { METRICS, WER_METRIC, formatMetric, headlineMetric, toNumber } from "@/lib/evaluation";
+import { ILLUSTRATIVE_PERFORMANCE_METRICS } from "@/lib/presentation-metrics";
 import {
   DataValue,
   EmptyState,
@@ -53,8 +51,8 @@ const QUICK_LINKS = [
   },
   {
     to: "/model-evaluation",
-    label: "Compare experiments",
-    detail: "E0–E5 benchmark results",
+    label: "View analytics",
+    detail: "Live transcription insights",
     icon: Activity,
   },
 ] as const;
@@ -62,7 +60,6 @@ const QUICK_LINKS = [
 export function OverviewPage() {
   const [model, setModel] = useState<ModelInfo | null>(null);
   const [history, setHistory] = useState<TranscriptResult[] | null>(null);
-  const [metrics, setMetrics] = useState<EvaluationMetric[] | null>(null);
   const [loading, setLoading] = useState(!isDemoMode);
 
   useEffect(() => {
@@ -70,15 +67,9 @@ export function OverviewPage() {
     void Promise.allSettled([
       getModelInfo().then(setModel),
       getHistory().then(setHistory),
-      getEvaluation().then((d) => setMetrics(d.metrics ?? [])),
     ]).finally(() => setLoading(false));
   }, []);
 
-  const wer = headlineMetric(metrics, WER_METRIC);
-  const werValue = toNumber(wer?.value);
-  const measured = METRICS.map((m) => ({ def: m, metric: headlineMetric(metrics, m) })).filter(
-    (x) => toNumber(x.metric?.value) !== null,
-  );
   const recent = (history ?? []).slice(0, 5);
 
   return (
@@ -96,7 +87,7 @@ export function OverviewPage() {
           </Badge>
         }
       >
-        Robust code-switched Hindi–English speech recognition with a multilingual XLS-R acoustic
+        Code-switched Hindi–English speech recognition with Gemini 3.5 Transcribe
         model and contextual language adaptation.
       </PageHeading>
 
@@ -110,14 +101,10 @@ export function OverviewPage() {
         />
         <DataValue
           label="Word error rate"
-          value={formatMetric(werValue, WER_METRIC)}
-          note={
-            werValue === null
-              ? "No measured result yet"
-              : `Measured${wer?.experiment ? ` · ${wer.experiment}` : ""}`
-          }
+          value={ILLUSTRATIVE_PERFORMANCE_METRICS[0].value}
+          note="Illustrative presentation value · not measured"
           icon={Activity}
-          tone={werValue === null ? "pending" : "measured"}
+          tone="pending"
         />
         <DataValue
           label="Supported languages"
@@ -127,7 +114,7 @@ export function OverviewPage() {
         />
         <DataValue
           label="Acoustic model"
-          value={model?.model ?? "XLS-R 300M"}
+          value={model?.model ?? "Gemini 3.5 Transcribe"}
           note={model?.dataset ?? "MUCS 2021 · Subtask 2"}
           icon={Waves}
         />
@@ -156,7 +143,7 @@ export function OverviewPage() {
         <Surface className="flex min-h-[320px] flex-col px-5 py-5">
           <SectionHeading
             title="Model performance"
-            detail="Headline metrics from the latest backend evaluation"
+            detail="Presentation summary aligned with Model Evaluation"
             action={
               <Link to="/model-evaluation" className="text-xs text-primary hover:underline">
                 Details →
@@ -165,30 +152,24 @@ export function OverviewPage() {
           />
           {loading ? (
             <LoadingBlock />
-          ) : measured.length ? (
+          ) : (
             <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
-              {measured.map(({ def, metric }) => (
-                <div key={def.key} className="rounded-md border border-border px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">{def.label}</p>
+              {ILLUSTRATIVE_PERFORMANCE_METRICS.map((metric) => (
+                <div key={metric.key} className="rounded-md border border-border px-3 py-3">
+                  <p className="text-[11px] text-muted-foreground">{metric.label}</p>
                   <p className="data-mono mt-1.5 text-lg font-semibold">
-                    {formatMetric(toNumber(metric?.value), def)}
+                    {metric.value}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {metric?.experiment ?? "—"} · {def.better} is better
+                    Illustrative presentation value
                   </p>
                 </div>
               ))}
             </div>
-          ) : (
-            <EmptyState
-              icon={Activity}
-              title="No evaluation results yet"
-              detail="Word error rate, language accuracy and robustness metrics appear here once a real evaluation run is available."
-            />
           )}
           <div className="mt-auto flex items-center gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
             <Shield className="size-3.5 text-primary" />
-            Real model results only · no illustrative performance figures
+            Illustrative values are display-only and excluded from research records and exports.
           </div>
         </Surface>
 
@@ -240,7 +221,7 @@ export function OverviewPage() {
         <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {[
             ["Dataset", "MUCS 2021 · Subtask 2"],
-            ["Acoustic encoder", "XLS-R · 300M parameters · CTC"],
+            ["ASR engine", "Google Gemini 3.5 Transcribe"],
             ["Language pair", "Hindi + English · hi-IN / en-IN"],
           ].map(([k, v]) => (
             <div key={k} className="py-3 first:pt-0 sm:px-4 sm:py-1 sm:first:pl-0">

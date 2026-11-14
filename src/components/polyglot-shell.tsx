@@ -113,7 +113,7 @@ function StatusCard() {
           {isDemoMode ? "Backend not connected" : `API · ${backendHost()}`}
         </span>
       </div>
-      <div className="mt-2 text-[10px] text-muted-foreground">XLS-R 300M · MUCS 2021</div>
+      <div className="mt-2 text-[10px] text-muted-foreground">Gemini 3.5 Transcribe · MUCS 2021</div>
     </div>
   );
 }

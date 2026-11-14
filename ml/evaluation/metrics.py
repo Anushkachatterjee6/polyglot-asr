@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+import unicodedata
+
 def _distance(reference: list[str], hypothesis: list[str]) -> int:
     previous = list(range(len(hypothesis) + 1))
     for i, value in enumerate(reference, 1):
@@ -17,6 +20,29 @@ def wer(reference: str, hypothesis: str) -> float | None:
 
 def cer(reference: str, hypothesis: str) -> float | None:
     return None if not reference else _distance(list(reference), list(hypothesis)) / len(reference)
+
+
+def normalize_for_evaluation(text: str) -> str:
+    """Unicode-normalise, case-fold, remove punctuation, and collapse spaces.
+
+    This never transliterates or translates Hindi/Tamil/English text; original
+    scripts remain intact for the actual edit-distance comparison.
+    """
+    text = unicodedata.normalize("NFC", text).casefold()
+    # Combining marks are part of Indic graphemes (for example Devanagari
+    # matras), so they must survive punctuation removal.
+    text = "".join(
+        char if (char.isalnum() or char.isspace() or unicodedata.category(char).startswith("M")) else " "
+        for char in text
+    )
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def lid_accuracy(reference: list[str], hypothesis: list[str]) -> float | None:
+    """Token-aligned language-label accuracy, unavailable when unalignable."""
+    if not reference or len(reference) != len(hypothesis):
+        return None
+    return sum(left == right for left, right in zip(reference, hypothesis)) / len(reference)
 
 
 def switch_boundary_f1(reference: list[str], hypothesis: list[str]) -> float | None:

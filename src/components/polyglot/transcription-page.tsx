@@ -345,9 +345,11 @@ export function TranscriptionPage() {
       try {
         const ctx = new AudioContext();
         audioCtxRef.current = ctx;
+        await ctx.resume();
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 1024;
-        ctx.createMediaStreamSource(stream).connect(analyser);
+        const source = ctx.createMediaStreamSource(stream);
+        source.connect(analyser);
         const buffer = new Uint8Array(analyser.fftSize);
         let last = 0;
         const loop = (t: number) => {
@@ -384,7 +386,9 @@ export function TranscriptionPage() {
   }
 
   async function runTranscription() {
-    if (!file || isDemoMode) return;
+    // The button is disabled while busy, and this guard also prevents a
+    // programmatic double submit from creating overlapping uploads.
+    if (!file || isDemoMode || busy) return;
     const controller = new AbortController();
     abortRef.current = controller;
     setBusy(true);
@@ -482,7 +486,7 @@ export function TranscriptionPage() {
     <>
       <PageHeading eyebrow="Audio workspace" title="Transcription Studio" action={<ModeBadge />}>
         Upload or record a Hindi–English sample. Transcript output comes only from the connected
-        XLS-R research backend.
+        Gemini 3.5 Transcribe backend.
       </PageHeading>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.9fr)]">

@@ -91,7 +91,7 @@ export function SettingsPage() {
           <Surface className="px-5 py-5">
             <SectionHeading
               title="Backend connection"
-              detail="FastAPI service running the XLS-R 300M CTC model"
+              detail="FastAPI service using Gemini 3.5 Transcribe"
               action={
                 <Badge
                   variant="outline"
@@ -187,9 +187,9 @@ export function SettingsPage() {
           <Surface className="px-5 py-5">
             <SectionHeading title="Model" detail="Research configuration" />
             <div className="divide-y divide-border">
-              <Row title="Acoustic model" detail="Multilingual wav2vec 2.0 encoder, CTC head">
+              <Row title="ASR model" detail="Gemini transcription service">
                 <Badge variant="outline" className="data-mono">
-                  XLS-R 300M
+                  Gemini 3.5 Transcribe
                 </Badge>
               </Row>
               <Row title="Dataset" detail="Fine-tuning benchmark">
@@ -213,7 +213,7 @@ export function SettingsPage() {
             <div className="divide-y divide-border">
               <Row
                 title="Preferred sample rate"
-                detail="Preprocessing target (XLS-R expects 16 kHz)"
+                detail="Streaming preprocessing target (16 kHz PCM)"
               >
                 <select
                   value={prefs.sampleRate}

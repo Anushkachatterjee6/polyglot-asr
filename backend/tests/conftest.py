@@ -1,8 +1,6 @@
-from pathlib import Path
-import sys
+import os
 
-BACKEND = Path(__file__).resolve().parents[1]
-REPOSITORY = BACKEND.parent
-for path in (str(BACKEND), str(REPOSITORY)):
-    if path not in sys.path:
-        sys.path.insert(0, path)
+
+# Backend tests must never use a developer's configured Gemini credential.
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["GEMINI_TIMEOUT_SECONDS"] = "120"

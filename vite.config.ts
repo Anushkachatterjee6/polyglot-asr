@@ -10,9 +10,12 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
+  vite: {
+    server: {
+      host: "127.0.0.1",
+      port: 5175,
+      // Never choose another origin: the API's CORS allow-list is deliberately exact.
+      strictPort: true,
+    },
   },
 });
